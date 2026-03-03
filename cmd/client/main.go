@@ -32,19 +32,34 @@ func main() {
 	
 	// create new game state of user
 	gameState := gamelogic.NewGameState(usrname)
-	queueName := "pause." + usrname
+	pauseQueueName := "pause." + usrname
 	
-	// start a routine to listen to msges in background
+	// start a routine to listen to pause msges in background
 	if err = pubsub.SubscribeJSON(
 		connection,
 		routing.ExchangePerilDirect,
-		queueName,
+		pauseQueueName,
 		routing.PauseKey,
 		pubsub.SimpleQueueTransient,
 		handlerPause(gameState),
 	); err != nil {
-		fmt.Printf("Error subscribing JSON: %s", err)
+		fmt.Printf("Error subscribing pause: %s", err)
 		return 
+	}
+
+	// start routine to listen to army move msges in background
+	moveQueueName := "army_moves." + usrname
+	moveRoutingKey := routing.ArmyMovesPrefix + "." + "*"
+	if err = pubsub.SubscribeJSON(
+		connection,
+		routing.ExchangePerilTopic,
+		moveQueueName,
+		moveRoutingKey,
+		pubsub.SimpleQueueTransient,
+		handlerMove(gameState),
+	); err != nil {
+		fmt.Printf("Error subscribing army_moves: %s", err)
+		return
 	}
 
 	// REPL
@@ -85,8 +100,6 @@ func main() {
 			continue
 		}
 	}
-
-
 
 	// wait for signal ctrl+c
 	signalChannel := make(chan os.Signal, 1)
