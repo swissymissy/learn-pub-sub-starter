@@ -30,23 +30,25 @@ func main() {
 		return
 	}
 	
-	// create queue and bind to exchange of pause key
-	queueName := routing.PauseKey + "." + usrname
-	_, _, err = pubsub.DeclareAndBind(
+	// create new game state of user
+	gameState := gamelogic.NewGameState(usrname)
+	queueName := "pause." + usrname
+	
+	// start a routine to listen to msges in background
+	if err = pubsub.SubscribeJSON(
 		connection,
 		routing.ExchangePerilDirect,
 		queueName,
 		routing.PauseKey,
 		pubsub.SimpleQueueTransient,
-	)
-	if err != nil {
-		fmt.Printf("Can't create new channel and queue: %s", err)
-		return
+		handlerPause(gameState),
+	); err != nil {
+		fmt.Printf("Error subscribing JSON: %s", err)
+		return 
 	}
 
-	// create new game state of user
-	gameState := gamelogic.NewGameState(usrname)
-	for {											// RELP
+	// REPL
+	for {											
 		// get user's input
 		input := gamelogic.GetInput()
 		if len(input) == 0 {
@@ -83,6 +85,8 @@ func main() {
 			continue
 		}
 	}
+
+
 
 	// wait for signal ctrl+c
 	signalChannel := make(chan os.Signal, 1)
