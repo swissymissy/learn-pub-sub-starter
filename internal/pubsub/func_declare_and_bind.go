@@ -32,6 +32,7 @@ func DeclareAndBind(
 		exclusive = true
 	}
 
+	// create new queue: durable or transient
 	newQueue, err := newChan.QueueDeclare(queueName, durable, autoDelete, exclusive, false , nil)
 	if err != nil {
 		return nil, amqp.Queue{} , fmt.Errorf("Can't declare new queue:%s", err) 

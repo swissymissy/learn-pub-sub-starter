@@ -62,6 +62,12 @@ func main() {
 		return
 	}
 
+	pubChan, err := connection.Channel()
+	if err != nil {
+		fmt.Printf("Can't create new channel: %s", err)
+		return 
+	}
+
 	// REPL
 	for {											
 		// get user's input
@@ -80,8 +86,13 @@ func main() {
 				continue
 			}
 		case "move":
-			_, err := gameState.CommandMove(input)
+			mv, err := gameState.CommandMove(input)
 			if err != nil {
+				fmt.Printf("%s\n", err)
+				continue
+			}
+			//publish the move
+			if err = pubsub.PublishJSON(pubChan, routing.ExchangePerilTopic, moveQueueName, mv); err != nil {
 				fmt.Printf("%s\n", err)
 				continue
 			}

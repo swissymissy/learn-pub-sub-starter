@@ -15,7 +15,7 @@ func SubscribeJSON[T any](
 	queueName,
 	key string,
 	queueType SimpleQueueType,
-	handler func(T),
+	handler func(T) AckType,
 ) error {
 
 	// make sure the given queue exists and bounded to exchange
@@ -39,11 +39,17 @@ func SubscribeJSON[T any](
 				log.Printf("Error unmarshaling channel msg: %v", err)
 				continue
 			}
-			handler(data)
-			// acknowledge the message to remove it from the queue
-			if err = eachMsg.Ack(false); err != nil {
-				log.Printf("Error removing msg from queue: %v", err)
-				continue
+			ackType := handler(data)
+			switch ackType {
+			case Ack:
+				fmt.Println("Ack type called")
+				eachMsg.Ack(false)
+			case NackRequeue:
+				fmt.Println("NackRequeue type called")
+				eachMsg.Nack(false, true)
+			case NackDiscard:
+				fmt.Println("Nack Discard type called")
+				eachMsg.Nack(false, false)
 			}
 		}
 	}()
