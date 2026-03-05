@@ -24,17 +24,25 @@ func main() {
 	defer connection.Close()									// close the connection before exiting program
 	fmt.Println("Successfully connect to RabbitMQ server!")
 
-	// create new durable queue and bind to exchange
-	bindKey := routing.GameLogSlug + "." + "*"
-	newChan, _, err := pubsub.DeclareAndBind(
+	// create a channel
+	pubChan, err := connection.Channel()
+	if err != nil {
+		fmt.Printf("Can't create new channel: %s", err)
+		return 
+	}
+
+	// consume game_logs messages and write them to disk
+	routingKey := routing.GameLogSlug + "." + "#"
+	queueName := routing.GameLogSlug
+	if err = pubsub.SubscribeGob(
 		connection,
 		routing.ExchangePerilTopic,
-		routing.GameLogSlug,
-		bindKey,
+		queueName,
+		routingKey,
 		pubsub.SimpleQueueDurable,
-	)
-	if err != nil {
-		fmt.Printf("Can't create durable queue: %s\n", err)
+		handlerLogs(),
+	); err != nil {
+		fmt.Printf("Error subscribeGob game_log: %s\n", err)
 		return
 	}
 
@@ -51,14 +59,14 @@ func main() {
 		case "pause":
 			fmt.Println("Sending a pause message...")
 			// publish a message to the exchange
-			err = pubsub.PublishJSON(newChan, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
+			err = pubsub.PublishJSON(pubChan, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
 			if err != nil {
 				fmt.Printf("Can't publish message to the exchange: %s", err)
 				continue
 			}
 		case "resume":
 			fmt.Println("Sending resume message...")
-			err = pubsub.PublishJSON(newChan, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: false})
+			err = pubsub.PublishJSON(pubChan, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: false})
 			if err != nil {
 				fmt.Printf("Can't publish message to the exchange: %s", err)
 				continue
