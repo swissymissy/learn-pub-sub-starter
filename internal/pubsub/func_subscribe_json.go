@@ -8,7 +8,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-
+// consume message function
 func SubscribeJSON[T any](
 	conn *amqp.Connection,
 	exchange,

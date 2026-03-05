@@ -23,6 +23,13 @@ func main() {
 	defer connection.Close()
 	fmt.Println("Successfully connect to rabbitmq server!")
 
+	// create a channel
+	pubChan, err := connection.Channel()
+	if err != nil {
+		fmt.Printf("Can't create new channel: %s", err)
+		return 
+	}
+
 	// prompt user for a username
 	usrname, err := gamelogic.ClientWelcome()
 	if err != nil {
@@ -56,16 +63,25 @@ func main() {
 		moveQueueName,
 		moveRoutingKey,
 		pubsub.SimpleQueueTransient,
-		handlerMove(gameState),
+		handlerMove(gameState, pubChan),
 	); err != nil {
 		fmt.Printf("Error subscribing army_moves: %s", err)
 		return
 	}
 
-	pubChan, err := connection.Channel()
-	if err != nil {
-		fmt.Printf("Can't create new channel: %s", err)
-		return 
+	// start routine to listen to war message
+	warQueueName := routing.WarRecognitionsPrefix
+	warRoutingKey := routing.WarRecognitionsPrefix + ".#"
+	if err = pubsub.SubscribeJSON(
+		connection,
+		routing.ExchangePerilTopic,
+		warQueueName,
+		warRoutingKey,
+		pubsub.SimpleQueueDurable,
+		handlerWar(gameState),
+	); err != nil {
+		fmt.Printf("Error subscribing war message: %s\n", err)
+		return
 	}
 
 	// REPL
