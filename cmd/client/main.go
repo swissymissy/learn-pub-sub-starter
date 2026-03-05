@@ -78,7 +78,7 @@ func main() {
 		warQueueName,
 		warRoutingKey,
 		pubsub.SimpleQueueDurable,
-		handlerWar(gameState),
+		handlerWar(gameState, pubChan),
 	); err != nil {
 		fmt.Printf("Error subscribing war message: %s\n", err)
 		return

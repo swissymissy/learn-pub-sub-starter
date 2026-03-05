@@ -34,7 +34,7 @@ func handlerMove(gs *gamelogic.GameState, ch *amqp.Channel) func(gamelogic.ArmyM
 				fmt.Printf("Error publishing message: %s\n", err)
 				return pubsub.NackRequeue	// put message in queue again, and retry
 			}
-			return pubsub.NackRequeue
+			return pubsub.Ack
 		default:
 			return pubsub.NackDiscard
 		}
